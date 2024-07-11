@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterUserRequest;
+use Exception;
 
 class AuthController extends Controller
 {
@@ -20,18 +21,10 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'username' => $request->username,
-            'password' => bcrypt($request->password)
+            'password' => Hash::make($request->password)
         ]);
 
-        return $this->success([
-            'user' => $user,
-            'token' => $user->createToken($user->name.'-AuthToken')->plainTextToken,
-        ]);
-
-        // return response()->json([
-        //     'status' => 'success',
-        //     'message' => "You have successfully registered your account!"
-        // ], 201);
+        return $this->success(['user' => $user], 'Account has been created successfully.', 201);
     }
 
     public function login(LoginRequest $request)
@@ -46,17 +39,24 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $user->createToken($user->name.'-AuthToken')->plainTextToken
         ]);
-        // $token = $user->createToken($user->name.'-AuthToken')->plainTextToken;
-
-        // return response()->json([
-        //     'status' => 'success',
-        //     'message' => 'Login successful.',
-        //     'access_token' => $token
-        // ], 200);
     }
 
-    public function me(Request $request)
+    public function me()
     {
-        return Auth::user();
+        try {
+            return Auth::user();
+        } catch(Exception $e) {
+            return $this->error(null, $e, 400);
+        }
+    }
+
+    public function logout(Request $request)
+    {
+        // Auth::user()->currentAccessToken()->delete();
+        $request->user()->currentAccessToken()->delete();
+
+        return $this->success([
+            'message' => 'You have successfully been logged out!',
+        ]);
     }
 }
